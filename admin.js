@@ -167,14 +167,19 @@ function renderDeletions(list) {
       </div>
       ${r.reason ? `<div class="del-reason">💬 "${esc(r.reason)}"</div>` : ''}
       <div class="del-actions">
-        <button class="btn-approve" onclick="approveDeletion('${r.id}','${r.contactId}')">
+        <button class="btn-approve" data-request-id="${r.id}" data-contact-id="${r.contactId}">
           🗑 Approve & Delete
         </button>
-        <button class="btn-reject" onclick="rejectDeletion('${r.id}')">
+        <button class="btn-reject" data-request-id="${r.id}">
           ✕ Reject
         </button>
       </div>
     </div>`).join('');
+
+  el.querySelectorAll('.btn-approve').forEach(btn =>
+    btn.addEventListener('click', () => approveDeletion(btn.dataset.requestId, btn.dataset.contactId)));
+  el.querySelectorAll('.btn-reject').forEach(btn =>
+    btn.addEventListener('click', () => rejectDeletion(btn.dataset.requestId)));
 }
 
 async function approveDeletion(requestId, contactId) {
@@ -209,8 +214,10 @@ function buildColorSwatches() {
     <div class="color-swatch ${i === 6 ? 'selected' : ''}"
          style="background:${p.color}"
          data-index="${i}"
-         title="${p.color}"
-         onclick="selectColor(${i})"></div>`).join('');
+         title="${p.color}"></div>`).join('');
+
+  wrap.querySelectorAll('.color-swatch').forEach(swatch =>
+    swatch.addEventListener('click', () => selectColor(+swatch.dataset.index)));
 }
 
 function selectColor(index) {
@@ -252,8 +259,11 @@ function renderCustomCategories(list) {
         <div class="custom-cat-name">${esc(c.label)}</div>
         <div class="custom-cat-badge" style="background:${c.bg};color:${c.color}">${esc(c.label)}</div>
       </div>
-      <button class="btn-delete-cat" onclick="deleteCategory('${c.id}')" title="Delete">🗑</button>
+      <button class="btn-delete-cat" data-cat-id="${c.id}" title="Delete">🗑</button>
     </div>`).join('');
+
+  el.querySelectorAll('.btn-delete-cat').forEach(btn =>
+    btn.addEventListener('click', () => deleteCategory(btn.dataset.catId)));
 }
 
 async function addCategory() {
