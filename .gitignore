@@ -1,0 +1,14 @@
+# Firebase credentials — never commit real config
+firebase-config.js
+
+# Firebase CLI artefacts
+.firebase/
+.firebaserc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp

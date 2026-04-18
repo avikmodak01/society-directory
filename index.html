@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0d9488" />
+  <meta name="description" content="Society Contact Directory — find trusted service providers in your housing society." />
+  <title>Society Directory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────────── -->
+  <header class="app-header">
+    <!-- Decorative -->
+    <div class="header-dots"></div>
+    <div class="header-orb orb-1"></div>
+    <div class="header-orb orb-2"></div>
+    <div class="header-orb orb-3"></div>
+
+    <div class="header-content">
+      <div class="header-top">
+        <div class="header-brand">
+          <div class="brand-logo">🏘️</div>
+          <div class="brand-text">
+            <h1>Society Directory</h1>
+            <p>Trusted local services</p>
+          </div>
+        </div>
+        <button class="btn-add-header" id="btn-add" aria-label="Add new contact">
+          <span class="plus-icon">+</span> Add
+        </button>
+      </div>
+
+      <div class="header-search">
+        <div class="search-field">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="search"
+            id="search-input"
+            placeholder="Search name or service…"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Search contacts"
+          />
+          <button class="search-clear" id="search-clear" aria-label="Clear search">✕</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Category Chips ──────────────────────────────────────── -->
+  <div class="categories-bar">
+    <div class="categories-scroll" id="category-chips" role="group" aria-label="Filter by category"></div>
+  </div>
+
+  <!-- ── Config Warning ──────────────────────────────────────── -->
+  <div class="config-banner" id="config-warning" hidden>
+    <strong>⚠️ Firebase not configured</strong>
+    Open <code>firebase-config.js</code> and replace the placeholder values with your Firebase project credentials, then refresh.
+  </div>
+
+  <!-- ── Main Content ────────────────────────────────────────── -->
+  <main>
+    <div class="count-bar" id="contact-count"></div>
+    <div class="contacts-grid" id="contacts-grid" role="list" aria-label="Contact list"></div>
+
+    <div class="empty-state" id="empty-state" hidden>
+      <span class="empty-icon">🔍</span>
+      <h3>No contacts found</h3>
+      <p>Try a different category or search term,<br>or be the first to add one.</p>
+      <button class="empty-action" id="btn-add-empty">+ Add a Contact</button>
+    </div>
+  </main>
+
+  <!-- ── FAB ─────────────────────────────────────────────────── -->
+  <button class="fab" id="btn-add-fab" aria-label="Add contact">+</button>
+
+  <!-- ── Add Contact Modal ────────────────────────────────────── -->
+  <div class="modal-overlay" id="add-modal" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
+    <div class="modal-sheet">
+      <div class="modal-drag"></div>
+      <div class="modal-header">
+        <span class="modal-title" id="add-modal-title">Add a Contact</span>
+        <button class="btn-close" id="close-add-modal" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-form" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="form-name">Full Name *</label>
+            <input class="form-input" id="form-name" type="text" placeholder="e.g. Ramesh Kumar" autocomplete="off" />
+            <div class="form-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="form-phone">Phone Number *</label>
+            <input class="form-input" id="form-phone" type="tel" placeholder="10-digit mobile number" inputmode="numeric" maxlength="15" />
+            <div class="form-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="form-category">Category *</label>
+            <select class="form-select form-input" id="form-category">
+              <option value="">Select a category…</option>
+            </select>
+            <div class="form-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="form-whatsapp">WhatsApp Number <span style="font-weight:500;text-transform:none;font-size:.8em">(if different from phone)</span></label>
+            <input class="form-input" id="form-whatsapp" type="tel" placeholder="Leave blank to use phone number" inputmode="numeric" maxlength="15" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="form-desc">Short Description</label>
+            <textarea class="form-textarea" id="form-desc" rows="2" maxlength="120" placeholder="e.g. Available 24/7, affordable rates…"></textarea>
+          </div>
+
+          <button type="submit" class="btn-submit" id="submit-btn">Add Contact</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Contact Detail Modal ─────────────────────────────────── -->
+  <div class="modal-overlay" id="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title">
+    <div class="modal-sheet">
+      <div class="modal-drag"></div>
+      <div class="modal-header">
+        <span class="modal-title" id="detail-modal-title">Contact Details</span>
+        <button class="btn-close" id="close-detail-modal" aria-label="Close">✕</button>
+      </div>
+      <div id="detail-content"></div>
+    </div>
+  </div>
+
+  <!-- ── Toast Container ──────────────────────────────────────── -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- ── Firebase SDK ─────────────────────────────────────────── -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <!-- ── App ──────────────────────────────────────────────────── -->
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
+
+  <script>
+    // Search clear button
+    const searchInput = document.getElementById('search-input');
+    const clearBtn    = document.getElementById('search-clear');
+    searchInput.addEventListener('input', () => {
+      clearBtn.classList.toggle('visible', searchInput.value.length > 0);
+    });
+    clearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      clearBtn.classList.remove('visible');
+      searchInput.dispatchEvent(new Event('input'));
+      searchInput.focus();
+    });
+
+    // Empty state add button
+    document.getElementById('btn-add-empty').addEventListener('click', () => {
+      document.getElementById('btn-add').click();
+    });
+  </script>
+</body>
+</html>

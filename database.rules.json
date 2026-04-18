@@ -1,0 +1,85 @@
+{
+  "rules": {
+    ".read":  false,
+    ".write": false,
+
+    "contacts": {
+      "approved": {
+        ".read": true,
+        ".write": true,
+        "$contactId": {
+          ".validate": "newData.hasChildren(['name','phone','category','createdAt'])
+                     && newData.child('name').isString()
+                     && newData.child('name').val().length > 0
+                     && newData.child('name').val().length <= 100
+                     && newData.child('phone').isString()
+                     && newData.child('phone').val().length >= 10
+                     && newData.child('phone').val().length <= 15
+                     && newData.child('category').isString()
+                     && newData.child('createdAt').isNumber()"
+        }
+      },
+      "pending": {
+        ".read": true,
+        ".write": true,
+        "$contactId": {
+          ".validate": "newData.hasChildren(['name','phone','category','createdAt'])
+                     && newData.child('name').isString()
+                     && newData.child('name').val().length > 0
+                     && newData.child('phone').isString()
+                     && newData.child('createdAt').isNumber()"
+        }
+      }
+    },
+
+    "ratings": {
+      ".read": true,
+      "$contactId": {
+        "$deviceId": {
+          ".read":  true,
+          ".write": true,
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5"
+        }
+      }
+    },
+
+    "reviews": {
+      ".read": true,
+      "$contactId": {
+        ".write": true,
+        "$reviewId": {
+          ".validate": "newData.hasChildren(['text','createdAt'])
+                     && newData.child('text').isString()
+                     && newData.child('text').val().length > 0
+                     && newData.child('text').val().length <= 100
+                     && newData.child('createdAt').isNumber()"
+        }
+      }
+    },
+
+    "pending_deletions": {
+      ".read": true,
+      ".write": true,
+      "$id": {
+        ".validate": "newData.hasChildren(['contactId','contactName','requestedAt'])
+                   && newData.child('contactId').isString()
+                   && newData.child('contactName').isString()
+                   && newData.child('requestedAt').isNumber()"
+      }
+    },
+
+    "categories": {
+      ".read": true,
+      ".write": true,
+      "$id": {
+        ".validate": "newData.hasChildren(['label','emoji','color','bg'])
+                   && newData.child('label').isString()
+                   && newData.child('label').val().length > 0
+                   && newData.child('label').val().length <= 50
+                   && newData.child('emoji').isString()
+                   && newData.child('color').isString()
+                   && newData.child('bg').isString()"
+      }
+    }
+  }
+}
