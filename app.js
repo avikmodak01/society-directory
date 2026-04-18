@@ -190,31 +190,37 @@ function updateFilterButton() {
 }
 
 /* ─── Connection Management ────────────────────────────────── */
-// For reads: go online, fetch, go offline immediately after.
-async function withReadConnection(fn) {
-  db.goOnline();
-  try { return await fn(); } finally { db.goOffline(); }
-}
-
-// For writes: go online and stay online — going offline before the server
-// acknowledges the write causes the promise to hang indefinitely.
+// Called once at startup and before any write. Stays online until tab closes.
 function ensureOnline() {
   db.goOnline();
 }
 
-/* ─── Fetch Contacts ───────────────────────────────────────── */
-async function fetchContacts() {
+/* ─── Fetch All Data (one connection, parallel reads) ─────── */
+async function fetchAllData() {
   showSkeletons();
   try {
-    const snap = await db.ref('contacts/approved').once('value');
+    // Fetch categories and contacts in parallel over one connection
+    const [catSnap, contactsSnap] = await Promise.all([
+      db.ref('categories').once('value'),
+      db.ref('contacts/approved').once('value'),
+    ]);
+
+    // Merge custom categories
+    const custom = Object.entries(catSnap.val() || {}).map(([id, c]) => ({ id, ...c }));
+    CATEGORIES   = [...DEFAULT_CATEGORIES, ...custom];
+    CATEGORY_MAP = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+    buildFilterSheet();
+    populateAddForm();
+
+    // Render contacts
     hideSkeletons();
-    const data = snap.val() || {};
+    const data = contactsSnap.val() || {};
     state.contacts = Object.entries(data).map(([id, c]) => ({ id, ...c }));
     state.contacts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     applyFilter();
   } catch {
     hideSkeletons();
-    showToast('Failed to load contacts. Check your Firebase config.', 'error');
+    showToast('Failed to load. Check your connection and refresh.', 'error');
   } finally {
     db.goOffline();
   }
@@ -457,7 +463,8 @@ async function loadReviews(contactId) {
   const listEl = document.getElementById('reviews-list');
   if (!listEl) return;
   try {
-    const snap = await withReadConnection(() => db.ref(`reviews/${contactId}`).limitToLast(3).once('value'));
+    ensureOnline();
+    const snap = await db.ref(`reviews/${contactId}`).limitToLast(3).once('value');
     const data = snap.val();
     if (!data) {
       listEl.innerHTML = `<em style="color:var(--text-muted);font-size:.85rem">No reviews yet. Be the first!</em>`;
@@ -511,20 +518,6 @@ function timeAgo(ts) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-/* ─── Dynamic Categories ────────────────────────────────────── */
-async function loadCustomCategories() {
-  try {
-    const snap = await withReadConnection(() => db.ref('categories').once('value'));
-    const custom = snap.val() || {};
-    const customList = Object.entries(custom).map(([id, c]) => ({ id, ...c }));
-    CATEGORIES = [...DEFAULT_CATEGORIES, ...customList];
-    CATEGORY_MAP = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
-    buildFilterSheet();
-    populateAddForm();
-  } catch (e) {
-    console.warn('Custom categories unavailable', e);
-  }
-}
 
 /* ─── Delete Request ─────────────────────────────────────────── */
 async function submitDeleteRequest(contact, reason) {
@@ -633,8 +626,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   buildFilterSheet();
   populateAddForm();
-  await loadCustomCategories();
-  fetchContacts();
+  fetchAllData();
 
   // Search
   document.getElementById('search-input').addEventListener('input', e => {
