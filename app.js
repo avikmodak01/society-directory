@@ -115,10 +115,10 @@ function renderCards() {
     card.innerHTML = `
       <div class="card-stripe" style="background:linear-gradient(90deg,${cat.color},${cat.color}88)"></div>
       <div class="card-inner">
-        <div class="card-avatar" style="background:${cat.bg}">${cat.emoji}</div>
+        <div class="card-avatar" style="background:${cat.bg}">${escHtml(cat.emoji)}</div>
         <div class="card-body">
           <div class="card-name">${escHtml(contact.name)}</div>
-          <div class="card-badge" style="background:${cat.bg};color:${cat.color}">${cat.emoji} ${cat.label}</div>
+          <div class="card-badge" style="background:${cat.bg};color:${cat.color}">${escHtml(cat.emoji)} ${escHtml(cat.label)}</div>
           <div class="card-phone">📞 ${escHtml(contact.phone)}</div>
           ${contact.description ? `<div class="card-desc">${escHtml(contact.description)}</div>` : ''}
           <div class="card-stars-row">
@@ -127,12 +127,14 @@ function renderCards() {
           </div>
         </div>
         <div class="card-actions">
-          <a href="tel:${phone}" class="card-btn card-btn-call" onclick="event.stopPropagation()" title="Call">📞</a>
-          <a href="https://wa.me/91${wa}" target="_blank" rel="noopener" class="card-btn card-btn-wa" onclick="event.stopPropagation()" title="WhatsApp">💬</a>
+          <a href="tel:${phone}" class="card-btn card-btn-call" title="Call">📞</a>
+          <a href="https://wa.me/91${wa}" target="_blank" rel="noopener" class="card-btn card-btn-wa" title="WhatsApp">💬</a>
         </div>
       </div>
     `;
 
+    card.querySelector('.card-btn-call').addEventListener('click', e => e.stopPropagation());
+    card.querySelector('.card-btn-wa').addEventListener('click', e => e.stopPropagation());
     card.addEventListener('click', () => openContactDetail(contact));
     grid.appendChild(card);
   });
@@ -158,7 +160,7 @@ function buildFilterSheet() {
     item.type = 'button';
     item.className = 'filter-item' + (cat.id === state.activeCategory ? ' active' : '');
     item.dataset.cat = cat.id;
-    item.innerHTML = `<span class="filter-item-emoji">${cat.emoji}</span><span class="filter-item-label">${cat.label}</span>`;
+    item.innerHTML = `<span class="filter-item-emoji">${escHtml(cat.emoji)}</span><span class="filter-item-label">${escHtml(cat.label)}</span>`;
     item.addEventListener('click', () => {
       state.activeCategory = cat.id;
       grid.querySelectorAll('.filter-item').forEach(c => c.classList.toggle('active', c.dataset.cat === cat.id));
@@ -334,9 +336,9 @@ async function openContactDetail(contact) {
   document.getElementById('detail-content').innerHTML = `
     <div class="detail-hero">
       <div class="detail-hero-bg" style="background:linear-gradient(135deg,${cat.color}22,${cat.color}08)"></div>
-      <div class="detail-avatar" style="background:${cat.bg}">${cat.emoji}</div>
+      <div class="detail-avatar" style="background:${cat.bg}">${escHtml(cat.emoji)}</div>
       <div class="detail-name">${escHtml(contact.name)}</div>
-      <div class="detail-badge" style="background:${cat.bg};color:${cat.color}">${cat.emoji} ${cat.label}</div>
+      <div class="detail-badge" style="background:${cat.bg};color:${cat.color}">${escHtml(cat.emoji)} ${escHtml(cat.label)}</div>
       <div class="detail-phone">📞 ${escHtml(contact.phone)}</div>
       ${contact.description ? `<div class="detail-desc">${escHtml(contact.description)}</div>` : ''}
     </div>

@@ -28,8 +28,7 @@
               newData.child('name').val().length > 0 &&
               newData.child('name').val().length <= 100 &&
               newData.child('phone').isString() &&
-              newData.child('phone').val().length >= 10 &&
-              newData.child('phone').val().length <= 15 &&
+              newData.child('phone').val().length == 10 &&
               newData.child('category').isString() &&
               newData.child('createdAt').isNumber() &&
               (!newData.hasChild('description') || (newData.child('description').isString() && newData.child('description').val().length <= 120))
@@ -50,7 +49,7 @@
     },
 
     "ratings": {
-      ".read": true,
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() == true",
       "$contactId": {
         ".write": "auth != null && root.child('admins').child(auth.uid).val() == true",
         "$deviceId": {
