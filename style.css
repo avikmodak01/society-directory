@@ -406,6 +406,13 @@ main {
   margin-bottom: 4px;
 }
 
+.card-phone {
+  font-size: .75rem;
+  color: var(--text-2);
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
 .card-desc {
   font-size: .77rem;
   color: var(--text-2);

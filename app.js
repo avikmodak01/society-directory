@@ -119,6 +119,7 @@ function renderCards() {
         <div class="card-body">
           <div class="card-name">${escHtml(contact.name)}</div>
           <div class="card-badge" style="background:${cat.bg};color:${cat.color}">${cat.emoji} ${cat.label}</div>
+          <div class="card-phone">📞 ${escHtml(contact.phone)}</div>
           ${contact.description ? `<div class="card-desc">${escHtml(contact.description)}</div>` : ''}
           <div class="card-stars-row">
             <span class="card-stars">${renderStars(avgRating)}</span>
@@ -265,8 +266,8 @@ async function handleAddContact(e) {
     setFieldError('form-name', 'Name is required');
     valid = false;
   }
-  if (!phone || phone.length < 10) {
-    setFieldError('form-phone', 'Valid 10-digit phone number is required');
+  if (!phone || phone.length !== 10) {
+    setFieldError('form-phone', 'Phone number must be exactly 10 digits');
     valid = false;
   }
   if (!category) {
