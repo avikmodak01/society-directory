@@ -152,44 +152,72 @@ function renderDeletions(list) {
       </div>`;
     return;
   }
-  el.innerHTML = list.map(r => `
+
+  // Group by contactId so each contact shows as one card
+  const groups = {};
+  list.forEach(r => {
+    if (!groups[r.contactId]) {
+      groups[r.contactId] = {
+        contactId:       r.contactId,
+        contactName:     r.contactName,
+        contactPhone:    r.contactPhone,
+        contactCategory: r.contactCategory,
+        latestAt:        r.requestedAt,
+        requestIds:      [],
+        reasons:         [],
+      };
+    }
+    const g = groups[r.contactId];
+    g.requestIds.push(r.id);
+    if (r.reason) g.reasons.push(r.reason);
+    if (r.requestedAt > g.latestAt) g.latestAt = r.requestedAt;
+  });
+
+  const grouped = Object.values(groups).sort((a, b) => b.latestAt - a.latestAt);
+
+  el.innerHTML = grouped.map(g => `
     <div class="deletion-card">
       <div class="deletion-card-top">
         <div class="del-avatar">🗑</div>
         <div class="del-info">
-          <div class="del-name">${esc(r.contactName)}</div>
+          <div class="del-name">
+            ${esc(g.contactName)}
+            ${g.requestIds.length > 1 ? `<span class="del-count">${g.requestIds.length} requests</span>` : ''}
+          </div>
           <div class="del-meta">
-            <span>📞 ${esc(r.contactPhone)}</span>
-            <span>🏷 ${esc(r.contactCategory || 'other')}</span>
-            <span>🕐 ${timeAgo(r.requestedAt)}</span>
+            <span>📞 ${esc(g.contactPhone || '—')}</span>
+            <span>🏷 ${esc(g.contactCategory || 'other')}</span>
+            <span>🕐 ${timeAgo(g.latestAt)}</span>
           </div>
         </div>
       </div>
-      ${r.reason ? `<div class="del-reason">💬 "${esc(r.reason)}"</div>` : ''}
+      ${g.reasons.length ? `<div class="del-reason">💬 "${esc(g.reasons.join(' · '))}"</div>` : ''}
       <div class="del-actions">
-        <button class="btn-approve" data-request-id="${r.id}" data-contact-id="${r.contactId}">
+        <button class="btn-approve" data-contact-id="${g.contactId}" data-request-ids="${g.requestIds.join(',')}">
           🗑 Approve & Delete
         </button>
-        <button class="btn-reject" data-request-id="${r.id}">
+        <button class="btn-reject" data-request-ids="${g.requestIds.join(',')}">
           ✕ Reject
         </button>
       </div>
     </div>`).join('');
 
   el.querySelectorAll('.btn-approve').forEach(btn =>
-    btn.addEventListener('click', () => approveDeletion(btn.dataset.requestId, btn.dataset.contactId)));
+    btn.addEventListener('click', () =>
+      approveDeletion(btn.dataset.contactId, btn.dataset.requestIds.split(','))));
   el.querySelectorAll('.btn-reject').forEach(btn =>
-    btn.addEventListener('click', () => rejectDeletion(btn.dataset.requestId)));
+    btn.addEventListener('click', () =>
+      rejectDeletion(btn.dataset.requestIds.split(','))));
 }
 
-async function approveDeletion(requestId, contactId) {
+async function approveDeletion(contactId, requestIds) {
   if (!confirm('Permanently delete this contact? This cannot be undone.')) return;
   try {
     await Promise.all([
       db.ref(`contacts/approved/${contactId}`).remove(),
-      db.ref(`pending_deletions/${requestId}`).remove(),
       db.ref(`ratings/${contactId}`).remove(),
       db.ref(`reviews/${contactId}`).remove(),
+      ...requestIds.map(id => db.ref(`pending_deletions/${id}`).remove()),
     ]);
     showToast('Contact deleted successfully.', 'success');
   } catch (e) {
@@ -198,9 +226,9 @@ async function approveDeletion(requestId, contactId) {
   }
 }
 
-async function rejectDeletion(requestId) {
+async function rejectDeletion(requestIds) {
   try {
-    await db.ref(`pending_deletions/${requestId}`).remove();
+    await Promise.all(requestIds.map(id => db.ref(`pending_deletions/${id}`).remove()));
     showToast('Request rejected.', '');
   } catch {
     showToast('Failed to reject. Try again.', 'error');
