@@ -9,6 +9,8 @@
       ".gitignore",
       "claude.md",
       "CLAUDE.md",
+      "netlify.toml",
+      "build.js",
       "**/.*",
       "**/node_modules/**"
     ],
