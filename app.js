@@ -190,10 +190,8 @@ function updateFilterButton() {
 }
 
 /* ─── Connection Management ────────────────────────────────── */
-// Called once at startup and before any write. Stays online until tab closes.
-function ensureOnline() {
-  db.goOnline();
-}
+// Firebase stays online for the lifetime of the tab.
+function ensureOnline() { /* no-op — connection is persistent */ }
 
 /* ─── Fetch All Data (one connection, parallel reads) ─────── */
 async function fetchAllData() {
@@ -221,8 +219,6 @@ async function fetchAllData() {
   } catch {
     hideSkeletons();
     showToast('Failed to load. Check your connection and refresh.', 'error');
-  } finally {
-    db.goOffline();
   }
 }
 
@@ -411,7 +407,8 @@ async function openContactDetail(contact) {
         showToast('Removal request submitted. Admin will review it.', 'success');
         closeDetailModal();
       }
-    } catch {
+    } catch (e) {
+      console.error('Delete request failed:', e);
       showToast('Failed to submit request. Try again.', 'error');
     } finally {
       btn.disabled = false;
@@ -522,12 +519,6 @@ function timeAgo(ts) {
 /* ─── Delete Request ─────────────────────────────────────────── */
 async function submitDeleteRequest(contact, reason) {
   ensureOnline();
-  const existing = await db.ref('pending_deletions')
-    .orderByChild('contactId').equalTo(contact.id).once('value');
-  if (existing.exists()) {
-    showToast('A deletion request already exists for this contact.', '');
-    return false;
-  }
   await db.ref('pending_deletions').push({
     contactId:       contact.id,
     contactName:     contact.name,
