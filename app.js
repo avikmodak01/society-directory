@@ -397,6 +397,7 @@ async function openContactDetail(contact) {
   document.getElementById('btn-request-delete').addEventListener('click', () => {
     document.getElementById('delete-request-form').hidden = false;
     document.getElementById('btn-request-delete').hidden = true;
+    document.getElementById('delete-request-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
   document.getElementById('btn-cancel-delete').addEventListener('click', () => {
     document.getElementById('delete-request-form').hidden = true;
