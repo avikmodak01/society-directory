@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <meta name="theme-color" content="#0d9488" />
+  <meta name="robots" content="noindex, nofollow" />
   <title>Admin Panel — Society Directory</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
@@ -19,14 +20,23 @@
       <div class="login-card">
         <div class="login-logo">🔐</div>
         <h1>Admin Panel</h1>
-        <p>Society Directory</p>
+        <p>Society Directory · Authorised access only</p>
         <form id="login-form" novalidate>
+          <input
+            class="login-input"
+            type="email"
+            id="admin-email"
+            placeholder="Admin email address"
+            autocomplete="email"
+            required
+          />
           <input
             class="login-input"
             type="password"
             id="admin-pwd"
-            placeholder="Enter admin password"
+            placeholder="Password"
             autocomplete="current-password"
+            required
           />
           <button class="login-btn" type="submit">Login →</button>
         </form>
@@ -38,7 +48,6 @@
   <!-- ── Dashboard ────────────────────────────────────────────── -->
   <div id="dashboard" hidden>
 
-    <!-- Header -->
     <header class="admin-header">
       <div class="admin-header-brand">
         <div class="logo">🏘️</div>
@@ -53,7 +62,6 @@
       </div>
     </header>
 
-    <!-- Tabs -->
     <div class="admin-tabs">
       <button class="tab-btn active" data-tab="deletions">
         🗑 Deletion Requests
@@ -64,45 +72,38 @@
       </button>
     </div>
 
-    <!-- Main -->
     <main class="admin-main">
 
-      <!-- ── Deletion Requests Tab ──────────────────────────── -->
+      <!-- Deletion Requests Tab -->
       <div class="tab-content" data-tab="deletions">
         <p class="section-title">Pending Removal Requests</p>
         <div id="deletions-list">
           <div class="admin-empty">
             <span class="icon">⏳</span>
             <h3>Loading…</h3>
-            <p>Fetching deletion requests from database.</p>
+            <p>Fetching deletion requests.</p>
           </div>
         </div>
       </div>
 
-      <!-- ── Categories Tab ─────────────────────────────────── -->
+      <!-- Categories Tab -->
       <div class="tab-content" data-tab="categories" hidden>
 
-        <!-- Add new category -->
         <div class="add-category-card">
           <h3>➕ Add New Category</h3>
-
           <div class="cat-form-row">
             <input class="admin-input emoji-input" id="cat-emoji" type="text"
                    placeholder="🔧" maxlength="4" />
             <input class="admin-input" id="cat-name" type="text"
                    placeholder="Category name" maxlength="30" />
           </div>
-
           <div class="color-label">Pick a colour</div>
           <div class="color-swatches" id="color-swatches"></div>
-
           <div class="color-label">Preview</div>
           <div class="cat-preview" id="cat-preview">⭐ Category</div>
-
           <button class="btn-add-cat" id="btn-add-cat">Add Category</button>
         </div>
 
-        <!-- Custom categories list -->
         <p class="section-title">Custom Categories</p>
         <div class="custom-cat-list" id="custom-cats-list">
           <p style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:16px 0">Loading…</p>
@@ -112,12 +113,13 @@
     </main>
   </div>
 
-  <!-- ── Toast ────────────────────────────────────────────────── -->
+  <!-- Toast -->
   <div id="toast-container" aria-live="polite"></div>
 
-  <!-- ── Firebase SDK ─────────────────────────────────────────── -->
+  <!-- Firebase SDK (app + database + auth) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="admin.js"></script>
 
