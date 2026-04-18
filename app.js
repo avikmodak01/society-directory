@@ -12,7 +12,12 @@ const DEFAULT_CATEGORIES = [
   { id: 'cook',        label: 'Cook',        emoji: '👨‍🍳', color: '#ea580c', bg: '#ffedd5' },
   { id: 'ac_repair',   label: 'AC Repair',   emoji: '❄️', color: '#0891b2', bg: '#cffafe' },
   { id: 'security',    label: 'Security',    emoji: '🔒', color: '#1d4ed8', bg: '#dbeafe' },
-  { id: 'other',       label: 'Other',       emoji: '⭐', color: '#9333ea', bg: '#f3e8ff' },
+  { id: 'decorator',   label: 'Decorator',          emoji: '🎀', color: '#be185d', bg: '#fce7f3' },
+  { id: 'interior',   label: 'Interior Decorator', emoji: '🛋️', color: '#7c3aed', bg: '#ede9fe' },
+  { id: 'driver',     label: 'Driver',             emoji: '🚗', color: '#0f766e', bg: '#ccfbf1' },
+  { id: 'water',      label: 'Water Supply',        emoji: '💧', color: '#0284c7', bg: '#e0f2fe' },
+  { id: 'lpg',        label: 'LPG Supply & Repair', emoji: '🔥', color: '#b45309', bg: '#fef3c7' },
+  { id: 'other',      label: 'Other',               emoji: '⭐', color: '#9333ea', bg: '#f3e8ff' },
 ];
 
 let CATEGORIES = [...DEFAULT_CATEGORIES];
@@ -143,22 +148,45 @@ function applyFilter() {
   renderCards();
 }
 
-/* ─── Category Chips ───────────────────────────────────────── */
-function buildCategoryChips() {
-  const bar = document.getElementById('category-chips');
-  bar.innerHTML = '';
+/* ─── Filter Sheet ─────────────────────────────────────────── */
+function buildFilterSheet() {
+  const grid = document.getElementById('filter-grid');
+  grid.innerHTML = '';
   CATEGORIES.forEach(cat => {
-    const chip = document.createElement('button');
-    chip.className = 'chip' + (cat.id === state.activeCategory ? ' active' : '');
-    chip.dataset.cat = cat.id;
-    chip.innerHTML = `<span class="chip-emoji">${cat.emoji}</span>${cat.label}`;
-    chip.addEventListener('click', () => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'filter-item' + (cat.id === state.activeCategory ? ' active' : '');
+    item.dataset.cat = cat.id;
+    item.innerHTML = `<span class="filter-item-emoji">${cat.emoji}</span><span class="filter-item-label">${cat.label}</span>`;
+    item.addEventListener('click', () => {
       state.activeCategory = cat.id;
-      bar.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat.id));
+      grid.querySelectorAll('.filter-item').forEach(c => c.classList.toggle('active', c.dataset.cat === cat.id));
+      updateFilterButton();
       applyFilter();
+      closeFilterModal();
     });
-    bar.appendChild(chip);
+    grid.appendChild(item);
   });
+}
+
+function openFilterModal() {
+  document.getElementById('filter-modal').classList.add('open');
+}
+function closeFilterModal() {
+  document.getElementById('filter-modal').classList.remove('open');
+}
+
+function updateFilterButton() {
+  const btn = document.getElementById('btn-filter');
+  const label = document.getElementById('filter-label');
+  const cat = CATEGORY_MAP[state.activeCategory];
+  if (state.activeCategory === 'all') {
+    label.textContent = 'All';
+    btn.classList.remove('filtered');
+  } else {
+    label.textContent = `${cat.emoji} ${cat.label}`;
+    btn.classList.add('filtered');
+  }
 }
 
 /* ─── Fetch Contacts ───────────────────────────────────────── */
@@ -303,6 +331,7 @@ async function openContactDetail(contact) {
     <div class="detail-cta">
       <a href="tel:${phone}" class="detail-cta-btn detail-cta-call">📞 Call</a>
       <a href="https://wa.me/91${wa}" target="_blank" rel="noopener" class="detail-cta-btn detail-cta-wa">💬 WhatsApp</a>
+      <button class="detail-cta-btn detail-cta-save" onclick="saveToPhonebook(state.openContact)">💾 Save</button>
     </div>
 
     <div class="detail-section">
@@ -481,7 +510,7 @@ async function loadCustomCategories() {
     const customList = Object.entries(custom).map(([id, c]) => ({ id, ...c }));
     CATEGORIES = [...DEFAULT_CATEGORIES, ...customList];
     CATEGORY_MAP = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
-    buildCategoryChips();
+    buildFilterSheet();
     populateAddForm();
   } catch (e) {
     console.warn('Custom categories unavailable', e);
@@ -508,6 +537,48 @@ async function submitDeleteRequest(contact, reason) {
   return true;
 }
 
+/* ─── Phonebook Integration ─────────────────────────────────── */
+async function pickFromContacts() {
+  try {
+    const [contact] = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+    if (!contact) return;
+    const name = contact.name?.[0] || '';
+    const tel  = (contact.tel?.[0] || '').replace(/\D/g, '').slice(-10);
+    if (name) document.getElementById('form-name').value = name;
+    if (tel)  document.getElementById('form-phone').value = tel;
+    ['form-name', 'form-phone'].forEach(id => {
+      document.getElementById(id).classList.remove('error');
+      const errEl = document.getElementById(id).parentElement.querySelector('.form-error');
+      if (errEl) errEl.textContent = '';
+    });
+  } catch (e) {
+    if (e.name !== 'AbortError') showToast('Could not access contacts.', 'error');
+  }
+}
+
+function saveToPhonebook(contact) {
+  const phone = contact.phone.replace(/\D/g, '');
+  const lines = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    `FN:${contact.name}`,
+    `TEL;TYPE=CELL:+91${phone}`,
+  ];
+  if (contact.description) lines.push(`NOTE:${contact.description}`);
+  lines.push('END:VCARD');
+
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/vcard' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${contact.name.replace(/\s+/g, '_')}.vcf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Contact file downloaded — open it to save to phonebook.', 'success');
+}
+
 /* ─── Bootstrap ────────────────────────────────────────────── */
 function populateAddForm() {
   const sel = document.getElementById('form-category');
@@ -523,6 +594,24 @@ function populateAddForm() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Search clear button
+  const searchInput = document.getElementById('search-input');
+  const clearBtn    = document.getElementById('search-clear');
+  searchInput.addEventListener('input', () => {
+    clearBtn.classList.toggle('visible', searchInput.value.length > 0);
+  });
+  clearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    clearBtn.classList.remove('visible');
+    searchInput.dispatchEvent(new Event('input'));
+    searchInput.focus();
+  });
+
+  // Empty state add button
+  document.getElementById('btn-add-empty').addEventListener('click', () => {
+    document.getElementById('btn-add').click();
+  });
+
   // Firebase config guard
   if (typeof firebaseConfig === 'undefined' || firebaseConfig.apiKey === 'YOUR_API_KEY') {
     document.getElementById('config-warning').hidden = false;
@@ -532,7 +621,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (!initFirebase()) return;
 
-  buildCategoryChips();
+  buildFilterSheet();
   populateAddForm();
   await loadCustomCategories();
   fetchContacts();
@@ -559,4 +648,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.target === e.currentTarget) closeDetailModal();
   });
   document.getElementById('close-detail-modal').addEventListener('click', closeDetailModal);
+
+  // Filter modal
+  document.getElementById('btn-filter').addEventListener('click', openFilterModal);
+  document.getElementById('filter-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeFilterModal();
+  });
+  document.getElementById('close-filter-modal').addEventListener('click', closeFilterModal);
+
+  // Contact picker (show button only if API supported)
+  if ('contacts' in navigator && 'ContactsManager' in window) {
+    document.getElementById('contact-picker-row').hidden = false;
+    document.getElementById('btn-pick-contact').addEventListener('click', pickFromContacts);
+  }
 });
