@@ -1,5 +1,6 @@
 # Firebase credentials — never commit real config
 firebase-config.js
+.env
 
 # Firebase CLI artefacts
 .firebase/

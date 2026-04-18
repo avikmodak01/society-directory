@@ -1,5 +1,17 @@
 const fs = require('fs');
 
+// Load .env when running locally (Netlify injects vars directly)
+if (fs.existsSync('.env')) {
+  fs.readFileSync('.env', 'utf8')
+    .split('\n')
+    .filter(line => line && !line.startsWith('#'))
+    .forEach(line => {
+      const [key, ...rest] = line.split('=');
+      if (key && !(key.trim() in process.env))
+        process.env[key.trim()] = rest.join('=').trim();
+    });
+}
+
 const required = [
   'FIREBASE_API_KEY',
   'FIREBASE_AUTH_DOMAIN',
