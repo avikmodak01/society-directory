@@ -189,20 +189,28 @@ function updateFilterButton() {
   }
 }
 
+/* ─── Connection Management ────────────────────────────────── */
+async function withConnection(fn) {
+  db.goOnline();
+  try { return await fn(); } finally { db.goOffline(); }
+}
+
 /* ─── Fetch Contacts ───────────────────────────────────────── */
-function fetchContacts() {
+async function fetchContacts() {
   showSkeletons();
-  db.ref('contacts/approved').on('value', snap => {
+  try {
+    const snap = await db.ref('contacts/approved').once('value');
     hideSkeletons();
     const data = snap.val() || {};
     state.contacts = Object.entries(data).map(([id, c]) => ({ id, ...c }));
-    // Sort: newest first
     state.contacts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     applyFilter();
-  }, () => {
+  } catch {
     hideSkeletons();
     showToast('Failed to load contacts. Check your Firebase config.', 'error');
-  });
+  } finally {
+    db.goOffline();
+  }
 }
 
 function showSkeletons() {
@@ -262,33 +270,28 @@ async function handleAddContact(e) {
   submitBtn.disabled = true;
   submitBtn.textContent = 'Checking…';
 
-  // Duplicate check
-  const approvedSnap = await db.ref('contacts/approved').orderByChild('phone').equalTo(phone).once('value');
-  if (approvedSnap.exists()) {
-    setFieldError('form-phone', 'This phone number is already in the directory');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Add Contact';
-    return;
-  }
+  submitBtn.textContent = 'Checking…';
 
-  submitBtn.textContent = 'Saving…';
-
-  const contact = {
-    name,
-    phone,
-    category,
-    whatsapp: whatsapp || phone,
-    description: desc || null,
-    createdAt: Date.now(),
-    addedBy: DEVICE_ID,
-  };
-
-  // Auto-approval: write straight to approved
-  const newRef = db.ref('contacts/approved').push();
   try {
-    await newRef.set(contact);
-    showToast('Contact added successfully!', 'success');
-    closeAddModal();
+    await withConnection(async () => {
+      const approvedSnap = await db.ref('contacts/approved').orderByChild('phone').equalTo(phone).once('value');
+      if (approvedSnap.exists()) {
+        setFieldError('form-phone', 'This phone number is already in the directory');
+        return;
+      }
+
+      submitBtn.textContent = 'Saving…';
+      const contact = {
+        name, phone, category,
+        whatsapp: whatsapp || phone,
+        description: desc || null,
+        createdAt: Date.now(),
+        addedBy: DEVICE_ID,
+      };
+      await db.ref('contacts/approved').push().set(contact);
+      showToast('Contact added successfully!', 'success');
+      closeAddModal();
+    });
   } catch {
     showToast('Failed to save. Please try again.', 'error');
   } finally {
@@ -433,8 +436,10 @@ function highlightStars(container, val) {
 
 async function submitRating(contactId, val, container) {
   try {
-    await db.ref(`ratings/${contactId}/${DEVICE_ID}`).set(val);
-    await db.ref(`contacts/approved/${contactId}/ratings/${DEVICE_ID}`).set(val);
+    await withConnection(async () => {
+      await db.ref(`ratings/${contactId}/${DEVICE_ID}`).set(val);
+      await db.ref(`contacts/approved/${contactId}/ratings/${DEVICE_ID}`).set(val);
+    });
     container.dataset.selected = val;
     highlightStars(container, val);
     document.getElementById('rating-note').textContent = `You rated ${val} star${val > 1 ? 's' : ''} — tap to update`;
@@ -449,7 +454,7 @@ async function loadReviews(contactId) {
   const listEl = document.getElementById('reviews-list');
   if (!listEl) return;
   try {
-    const snap = await db.ref(`reviews/${contactId}`).limitToLast(3).once('value');
+    const snap = await withConnection(() => db.ref(`reviews/${contactId}`).limitToLast(3).once('value'));
     const data = snap.val();
     if (!data) {
       listEl.innerHTML = `<em style="color:var(--text-muted);font-size:.85rem">No reviews yet. Be the first!</em>`;
@@ -474,7 +479,9 @@ async function submitReview(contactId) {
   const btn = document.getElementById('review-submit-btn');
   btn.disabled = true;
   try {
-    await db.ref(`reviews/${contactId}`).push({ text, createdAt: Date.now(), deviceId: DEVICE_ID });
+    await withConnection(() =>
+      db.ref(`reviews/${contactId}`).push({ text, createdAt: Date.now(), deviceId: DEVICE_ID })
+    );
     input.value = '';
     showToast('Review posted!', 'success');
     loadReviews(contactId);
@@ -505,7 +512,7 @@ function timeAgo(ts) {
 /* ─── Dynamic Categories ────────────────────────────────────── */
 async function loadCustomCategories() {
   try {
-    const snap = await db.ref('categories').once('value');
+    const snap = await withConnection(() => db.ref('categories').once('value'));
     const custom = snap.val() || {};
     const customList = Object.entries(custom).map(([id, c]) => ({ id, ...c }));
     CATEGORIES = [...DEFAULT_CATEGORIES, ...customList];
@@ -519,22 +526,24 @@ async function loadCustomCategories() {
 
 /* ─── Delete Request ─────────────────────────────────────────── */
 async function submitDeleteRequest(contact, reason) {
-  const existing = await db.ref('pending_deletions')
-    .orderByChild('contactId').equalTo(contact.id).once('value');
-  if (existing.exists()) {
-    showToast('A deletion request already exists for this contact.', '');
-    return false;
-  }
-  await db.ref('pending_deletions').push({
-    contactId:       contact.id,
-    contactName:     contact.name,
-    contactPhone:    contact.phone,
-    contactCategory: contact.category,
-    reason:          reason || '',
-    requestedBy:     DEVICE_ID,
-    requestedAt:     Date.now(),
+  return withConnection(async () => {
+    const existing = await db.ref('pending_deletions')
+      .orderByChild('contactId').equalTo(contact.id).once('value');
+    if (existing.exists()) {
+      showToast('A deletion request already exists for this contact.', '');
+      return false;
+    }
+    await db.ref('pending_deletions').push({
+      contactId:       contact.id,
+      contactName:     contact.name,
+      contactPhone:    contact.phone,
+      contactCategory: contact.category,
+      reason:          reason || '',
+      requestedBy:     DEVICE_ID,
+      requestedAt:     Date.now(),
+    });
+    return true;
   });
-  return true;
 }
 
 /* ─── Phonebook Integration ─────────────────────────────────── */
