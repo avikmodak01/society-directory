@@ -296,9 +296,11 @@ async function handleAddContact(e) {
       createdAt: Date.now(),
       addedBy: DEVICE_ID,
     };
-    await db.ref('contacts/approved').push().set(contact);
+    const newRef = db.ref('contacts/approved').push();
+    await newRef.set(contact);
     showToast('Contact added successfully!', 'success');
     closeAddModal();
+    fetchAllData();
   } catch {
     showToast('Failed to save. Please try again.', 'error');
   } finally {
@@ -335,13 +337,14 @@ async function openContactDetail(contact) {
       <div class="detail-avatar" style="background:${cat.bg}">${cat.emoji}</div>
       <div class="detail-name">${escHtml(contact.name)}</div>
       <div class="detail-badge" style="background:${cat.bg};color:${cat.color}">${cat.emoji} ${cat.label}</div>
+      <div class="detail-phone">📞 ${escHtml(contact.phone)}</div>
       ${contact.description ? `<div class="detail-desc">${escHtml(contact.description)}</div>` : ''}
     </div>
 
     <div class="detail-cta">
       <a href="tel:${phone}" class="detail-cta-btn detail-cta-call">📞 Call</a>
       <a href="https://wa.me/91${wa}" target="_blank" rel="noopener" class="detail-cta-btn detail-cta-wa">💬 WhatsApp</a>
-      <button class="detail-cta-btn detail-cta-save" onclick="saveToPhonebook(state.openContact)">💾 Save</button>
+      <button class="detail-cta-btn detail-cta-save" id="btn-save-phonebook">💾 Save</button>
     </div>
 
     <div class="detail-section">
@@ -383,6 +386,9 @@ async function openContactDetail(contact) {
     star.addEventListener('mouseleave', () => highlightStars(starInput, +starInput.dataset.selected));
     star.addEventListener('click', () => submitRating(contact.id, +star.dataset.val, starInput));
   });
+
+  // Save to phonebook
+  document.getElementById('btn-save-phonebook').addEventListener('click', () => saveToPhonebook(state.openContact));
 
   // Review submit
   document.getElementById('review-submit-btn').addEventListener('click', () => submitReview(contact.id));
